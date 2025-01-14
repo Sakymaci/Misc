@@ -1,0 +1,132 @@
+# Python Game Mechanics Code 
+
+# Basic Game Loop
+running = True
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+
+# Player Movement
+keys = pygame.key.get_pressed()
+if keys[pygame.K_LEFT]:
+    player.x -= player_speed
+if keys[pygame.K_RIGHT]:
+    player.x += player_speed
+
+# Collision Detection
+def check_collision(rect1, rect2):
+    return rect1.colliderect(rect2)
+
+# Score Display
+font = pygame.font.Font(None, 36)
+def display_score(score):
+    score_text = font.render(f"Score: {score}", True, (255, 255, 255))
+    screen.blit(score_text, (10, 10))
+
+# Enemy AI
+for enemy in enemies:
+    if enemy.x > player.x:
+        enemy.x -= enemy_speed
+    elif enemy.x < player.x:
+        enemy.x += enemy_speed
+
+# Projectile Mechanics
+def fire_projectile(projectile_list, x, y):
+    projectile = pygame.Rect(x, y, 5, 10)
+    projectile_list.append(projectile)
+
+def update_projectiles(projectile_list):
+    for projectile in projectile_list:
+        projectile.y -= projectile_speed
+        if projectile.y < 0:
+            projectile_list.remove(projectile)
+
+# Power-Ups
+power_up_active = False
+power_up_timer = 0
+
+if check_collision(player_rect, power_up_rect):
+    power_up_active = True
+    power_up_timer = pygame.time.get_ticks()
+
+if power_up_active and pygame.time.get_ticks() - power_up_timer > 5000:
+    power_up_active = False
+
+# Background Scrolling
+background_y = 0
+background_speed = 2
+
+def scroll_background():
+    global background_y
+    background_y += background_speed
+    if background_y >= screen_height:
+        background_y = 0
+
+# Game Over and Restart Mechanics
+def game_over():
+    font = pygame.font.Font(None, 74)
+    text = font.render("Game Over", True, (255, 0, 0))
+    screen.blit(text, (screen_width // 2 - 100, screen_height // 2 - 50))
+    pygame.display.flip()
+    pygame.time.wait(3000)
+
+def restart_game():
+    global player, enemies, score
+    player = Player()
+    enemies = []
+    score = 0
+
+# Level Progression
+current_level = 1
+
+def advance_level():
+    global current_level, enemies, enemy_speed
+    current_level += 1
+    enemy_speed += 1
+    for _ in range(current_level * 5):
+        enemies.append(Enemy())
+
+# Dynamic Sound Effects Integration
+pygame.mixer.init()
+shoot_sound = pygame.mixer.Sound("shoot.wav")
+collision_sound = pygame.mixer.Sound("collision.wav")
+
+def play_sound(effect):
+    effect.play()
+
+# Animated Sprites
+class AnimatedSprite(pygame.sprite.Sprite):
+    def __init__(self, images, x, y):
+        super().__init__()
+        self.images = images
+        self.index = 0
+        self.image = self.images[self.index]
+        self.rect = self.image.get_rect(topleft=(x, y))
+
+    def update(self):
+        self.index = (self.index + 1) % len(self.images)
+        self.image = self.images[self.index]
+
+# Pause and Resume Functionality
+def pause_game():
+    paused = True
+    while paused:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_p:
+                paused = False
+
+# Save and Load Game State
+import pickle
+
+def save_game(player, enemies, score, filename="savegame.dat"):
+    with open(filename, "wb") as f:
+        pickle.dump((player, enemies, score), f)
+
+def load_game(filename="savegame.dat"):
+    global player, enemies, score
+    with open(filename, "rb") as f:
+        player, enemies, score = pickle.load(f)
